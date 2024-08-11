@@ -60,9 +60,9 @@ screen w h = rep h $ rep w ' '
 
 printScreen :: [[Char]] -> IO ()
 printScreen [] = putStrLn ""
-printScreen [x :: [Char]] = print x
+printScreen [x :: [Char]] = putStrLn x
 printScreen (x : xs) = do
-  print x
+  putStrLn x
   printScreen xs
 
 enumerate2D :: [[Char]] -> [[(Integer, Integer, Char)]]
