@@ -28,7 +28,7 @@ rotatedCCW :: Vec2 -> Vec2
 rotatedCCW (x, y) = (-y, x)
 
 dot :: Vec2 -> Vec2 -> Double
-dot (x1, y1) (x2, y2) = x1 * y2 + x2 * y1
+dot (x1, y1) (x2, y2) = x1 * x2 + y1 * y2
 
 v3Proj :: Vec3 -> Vec2
 v3Proj (x, y, z) = (x / z, y / z)
@@ -37,7 +37,7 @@ projectTri :: Triangle3D -> Triangle2D
 projectTri (a, b, c) = (v3Proj a, v3Proj b, v3Proj c)
 
 triangleSign :: Triangle2D -> Double
-triangleSign (a, b, c) = dot (v2Sub b a) $ rotatedCW (v2Sub c a)
+triangleSign (a, b, c) = dot (rotatedCW $ v2Sub b a) (v2Sub c a)
 
 isCw :: Triangle2D -> Bool
 isCw triangle = triangleSign triangle > 0
@@ -60,9 +60,9 @@ screen w h = rep h $ rep w ' '
 
 printScreen :: [[Char]] -> IO ()
 printScreen [] = putStrLn ""
-printScreen [x :: [Char]] = putStrLn x
+printScreen [x :: [Char]] = print x
 printScreen (x : xs) = do
-  putStrLn x
+  print x
   printScreen xs
 
 enumerate2D :: [[Char]] -> [[(Integer, Integer, Char)]]
@@ -71,32 +71,34 @@ enumerate2D x = fillEnumeration2D $ zip [0 ..] $ map (zip [0 ..]) x
 fillEnumeration2D :: [(Integer, [(Integer, Char)])] -> [[(Integer, Integer, Char)]]
 fillEnumeration2D = map (\(x, l) -> map (\(i, c) -> (x, i, c)) l)
 
-idxToScreen :: Integer -> (Integer, Integer) -> Vec2
-idxToScreen invScale (i, j) =
-  let iF = realToFrac i
-      jF = realToFrac j
-      sF = realToFrac invScale
-   in (iF / sF, jF / sF / 2)
+idxToScreen :: Double -> (Integer, Integer) -> (Integer, Integer) -> Vec2
+idxToScreen scale (w, h) (i, j) =
+  let iF = realToFrac ((h `div` 2) - i)
+      jF = realToFrac (j - (w `div` 2))
+   in (jF * scale, iF * scale)
 
 -- removeEnumeration2D :: [[(Integer, Integer, Char)]] -> [[Char]]
 -- removeEnumeration2D = map (map (\(_, _, c) -> c))
 
 renderTriToScreen :: [[Char]] -> Char -> Triangle3D -> [[Char]]
 renderTriToScreen scr c tri =
+  let w = toInteger . length $ head scr
+      h = toInteger . length $ scr
+  in
   map
     ( map
         ( \(i, j, o) ->
             if inCwTriangle2D
               (projectTri tri)
-              (idxToScreen 2 (i, j))
+              (idxToScreen (1.0 / fromIntegral h) (w, h) (i, j))
               then c
               else o
         )
     )
     (enumerate2D scr)
 
-main :: IO()
+main :: IO ()
 main = do
-  let triangle = ((0, 1, 3), (1, 0, 3), (0, 0, 5)) :: Triangle3D
-  let scr = renderTriToScreen (screen 20 10) '#' triangle
+  let triangle1 = ((-1.4, -0.1, 3), (0.2, 1.1, 3.3), (2.9, 0.2, 3.2)) :: Triangle3D
+  let scr = renderTriToScreen (screen 40 20) '#' triangle1
   printScreen scr
